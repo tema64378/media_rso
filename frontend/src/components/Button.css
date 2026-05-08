@@ -1,0 +1,65 @@
+.btn {
+  font-family: 'Roboto', 'Inter', sans-serif;
+  font-weight: 500;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0066FF 0%, #0052CC 100%);
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 102, 255, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 102, 255, 0.3);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #00D9FF 0%, #00B8D4 100%);
+  color: #1A1A1A;
+  box-shadow: 0 4px 6px rgba(0, 217, 255, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 217, 255, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  color: #0066FF;
+  border: 2px solid #0066FF;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: rgba(0, 102, 255, 0.05);
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-md {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+}
