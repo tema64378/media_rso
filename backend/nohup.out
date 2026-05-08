@@ -1,0 +1,21 @@
+warning: struct `User` is never constructed
+ --> src/models.rs:4:12
+  |
+4 | pub struct User {
+  |            ^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `Submission` is never constructed
+  --> src/models.rs:12:12
+   |
+12 | pub struct Submission {
+   |            ^^^^^^^^^^
+
+warning: `mediacontest_backend` (bin "mediacontest_backend") generated 2 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s
+     Running `target/debug/mediacontest_backend`
+[2m2026-05-08T21:55:46.771946Z[0m [32m INFO[0m [2mmediacontest_backend::db[0m[2m:[0m Applied migration: ./migrations/001_init.sql
+[2m2026-05-08T21:55:46.774182Z[0m [32m INFO[0m [2mmediacontest_backend::db[0m[2m:[0m Applied migration: ./migrations/002_seed_roles.sql
+[2m2026-05-08T21:55:49.535615Z[0m [32m INFO[0m [2mmediacontest_backend::db[0m[2m:[0m Database initialized at /tmp/mediacontest.db
+[2m2026-05-08T21:55:49.535938Z[0m [32m INFO[0m [2mmediacontest_backend[0m[2m:[0m listening on 127.0.0.1:8080

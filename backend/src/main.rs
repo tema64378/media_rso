@@ -1,5 +1,5 @@
-use axum::{routing::{get, post}, Router, response::Json, extract::State, http::HeaderMap};
-use serde::{Deserialize, Serialize};
+use axum::{routing::{get, post}, Router};
+use serde::Deserialize;
 use serde_json::json;
 use std::net::SocketAddr;
 use tracing_subscriber;
@@ -19,6 +19,9 @@ struct RegisterPayload { email: String, password: String, name: Option<String>, 
 #[derive(Deserialize)]
 struct LoginPayload { email: String, password: String }
 
+#[derive(Deserialize)]
+struct SubmissionPayload { title: String, description: Option<String>, url: Option<String> }
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -27,18 +30,22 @@ async fn main() {
     let state = AppState { pool };
 
     let app = Router::new()
-        .route("/health", get(|| async { Json(json!({"status":"ok"})) }))
+        .route("/health", get(|| async { axum::Json(json!({"status":"ok"})) }))
         .route("/register", post(register))
         .route("/login", post(login))
         .route("/me", get(me))
+        .route("/submissions", post(submit_work))
+        .route("/admin/stats", get(admin_stats))
+        .route("/admin/users", get(admin_users))
         .with_state(state);
 
     let addr = SocketAddr::from(([127,0,0,1], 8080));
     tracing::info!("listening on {}", addr);
-    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
-async fn register(State(state): State<AppState>, axum::Json(payload): axum::Json<RegisterPayload>) -> Json<serde_json::Value> {
+async fn register(axum::extract::State(state): axum::extract::State<AppState>, axum::Json(payload): axum::Json<RegisterPayload>) -> axum::Json<serde_json::Value> {
     let hashed = bcrypt::hash(&payload.password, bcrypt::DEFAULT_COST).unwrap();
     let role = payload.role.unwrap_or_else(|| "participant".to_string());
 
@@ -50,15 +57,15 @@ async fn register(State(state): State<AppState>, axum::Json(payload): axum::Json
         .execute(&state.pool).await;
 
     match res {
-        Ok(_) => Json(json!({"status":"ok"})),
+        Ok(_) => axum::Json(json!({"status":"ok"})),
         Err(e) => {
             tracing::error!("register error: {:?}", e);
-            Json(json!({"status":"error", "error": format!("{}", e)}))
+            axum::Json(json!({"status":"error", "error": format!("{}", e)}))
         }
     }
 }
 
-async fn login(State(state): State<AppState>, axum::Json(payload): axum::Json<LoginPayload>) -> Json<serde_json::Value> {
+async fn login(axum::extract::State(state): axum::extract::State<AppState>, axum::Json(payload): axum::Json<LoginPayload>) -> axum::Json<serde_json::Value> {
     let row = sqlx::query("SELECT id, password_hash, role FROM users WHERE email = ?")
         .bind(&payload.email)
         .fetch_optional(&state.pool).await;
@@ -70,22 +77,22 @@ async fn login(State(state): State<AppState>, axum::Json(payload): axum::Json<Lo
             let role: String = r.get("role");
             if bcrypt::verify(&payload.password, &pw_hash).unwrap_or(false) {
                 match auth::generate_jwt(id, &role) {
-                    Ok(token) => Json(json!({"status":"ok", "token": token, "role": role})),
-                    Err(e) => Json(json!({"status":"error", "error": format!("{}", e)})),
+                    Ok(token) => axum::Json(json!({"status":"ok", "token": token, "role": role})),
+                    Err(e) => axum::Json(json!({"status":"error", "error": format!("{}", e)})),
                 }
             } else {
-                Json(json!({"status":"error", "error": "invalid credentials"}))
+                axum::Json(json!({"status":"error", "error": "invalid credentials"}))
             }
         }
-        Ok(None) => Json(json!({"status":"error", "error": "user not found"})),
+        Ok(None) => axum::Json(json!({"status":"error", "error": "user not found"})),
         Err(e) => {
             tracing::error!("db error: {:?}", e);
-            Json(json!({"status":"error", "error": format!("{}", e)}))
+            axum::Json(json!({"status":"error", "error": format!("{}", e)}))
         }
     }
 }
 
-async fn me(State(state): State<AppState>, headers: HeaderMap) -> Json<serde_json::Value> {
+async fn me(axum::extract::State(state): axum::extract::State<AppState>, headers: axum::http::HeaderMap) -> axum::Json<serde_json::Value> {
     if let Some(auth) = headers.get("authorization") {
         if let Ok(auth_str) = auth.to_str() {
             if auth_str.starts_with("Bearer ") {
@@ -101,24 +108,24 @@ async fn me(State(state): State<AppState>, headers: HeaderMap) -> Json<serde_jso
                                     let email: String = r.get("email");
                                     let role: String = r.get("role");
                                     let name: Option<String> = r.get("name");
-                                    return Json(json!({"status":"ok","user":{"id":id,"email":email,"role":role,"name":name}}));
+                                    return axum::Json(json!({"status":"ok","user":{"id":id,"email":email,"role":role,"name":name}}));
                                 }
-                                Ok(None) => return Json(json!({"status":"error","error":"user not found"})),
+                                Ok(None) => return axum::Json(json!({"status":"error","error":"user not found"})),
                                 Err(e) => {
                                     tracing::error!("db error: {:?}", e);
-                                    return Json(json!({"status":"error","error": format!("{}", e)}));
+                                    return axum::Json(json!({"status":"error","error": format!("{}", e)}));
                                 }
                             }
                     }
-                    Err(_) => return Json(json!({"status":"error","error":"invalid token"})),
+                    Err(_) => return axum::Json(json!({"status":"error","error":"invalid token"})),
                 }
             }
         }
     }
-    Json(json!({"status":"error","error":"missing authorization"}))
+    axum::Json(json!({"status":"error","error":"missing authorization"}))
 }
 
-async fn submit_work(State(state): State<AppState>, headers: HeaderMap, axum::Json(payload): axum::Json<serde_json::Value>) -> Json<serde_json::Value> {
+async fn submit_work(axum::extract::State(state): axum::extract::State<AppState>, headers: axum::http::HeaderMap, axum::Json(payload): axum::Json<SubmissionPayload>) -> axum::Json<serde_json::Value> {
     if let Some(auth) = headers.get("authorization") {
         if let Ok(auth_str) = auth.to_str() {
             if auth_str.starts_with("Bearer ") {
@@ -126,27 +133,90 @@ async fn submit_work(State(state): State<AppState>, headers: HeaderMap, axum::Js
                 match auth::decode_jwt(token) {
                     Ok(data) => {
                         let user_id: i64 = data.claims.sub.parse().unwrap_or(0);
-                        let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("");
-                        let desc = payload.get("description").and_then(|v| v.as_str());
-                        let url = payload.get("url").and_then(|v| v.as_str());
                         
                         match sqlx::query("INSERT INTO submissions (user_id, title, description, url) VALUES (?, ?, ?, ?)")
-                            .bind(user_id).bind(title).bind(desc).bind(url)
+                            .bind(user_id).bind(&payload.title).bind(&payload.description).bind(&payload.url)
                             .execute(&state.pool).await {
                                 Ok(r) => {
-                                    let id = r.last_insert_id();
-                                    return Json(json!({"status":"ok","id": id}));
+                                    let id = r.last_insert_rowid();
+                                    return axum::Json(json!({"status":"ok","id": id}));
                                 }
                                 Err(e) => {
                                     tracing::error!("db error: {:?}", e);
-                                    return Json(json!({"status":"error","error": format!("{}", e)}));
+                                    return axum::Json(json!({"status":"error","error": format!("{}", e)}));
                                 }
                             }
                     }
-                    Err(_) => return Json(json!({"status":"error","error":"invalid token"})),
+                    Err(_) => return axum::Json(json!({"status":"error","error":"invalid token"})),
                 }
             }
         }
     }
-    Json(json!({"status":"error","error":"missing authorization"}))
+    axum::Json(json!({"status":"error","error":"missing authorization"}))
+}
+
+async fn admin_stats(axum::extract::State(state): axum::extract::State<AppState>, headers: axum::http::HeaderMap) -> axum::Json<serde_json::Value> {
+    if let Some(auth) = headers.get("authorization") {
+        if let Ok(auth_str) = auth.to_str() {
+            if auth_str.starts_with("Bearer ") {
+                let token = &auth_str[7..];
+                match auth::decode_jwt(token) {
+                    Ok(data) => {
+                        let role = data.claims.role;
+                        if role != "admin" && role != "hq" {
+                            return axum::Json(json!({"status":"error","error":"forbidden"}));
+                        }
+                        let users_cnt = match sqlx::query("SELECT COUNT(*) as cnt FROM users").fetch_one(&state.pool).await {
+                            Ok(r) => r.get::<i64, _>("cnt"),
+                            Err(_) => 0,
+                        };
+                        let submissions_cnt = match sqlx::query("SELECT COUNT(*) as cnt FROM submissions").fetch_one(&state.pool).await {
+                            Ok(r) => r.get::<i64, _>("cnt"),
+                            Err(_) => 0,
+                        };
+                        return axum::Json(json!({"status":"ok","counts": {"users": users_cnt, "submissions": submissions_cnt}}));
+                    }
+                    Err(_) => return axum::Json(json!({"status":"error","error":"invalid token"})),
+                }
+            }
+        }
+    }
+    axum::Json(json!({"status":"error","error":"missing authorization"}))
+}
+
+async fn admin_users(axum::extract::State(state): axum::extract::State<AppState>, headers: axum::http::HeaderMap) -> axum::Json<serde_json::Value> {
+    if let Some(auth) = headers.get("authorization") {
+        if let Ok(auth_str) = auth.to_str() {
+            if auth_str.starts_with("Bearer ") {
+                let token = &auth_str[7..];
+                match auth::decode_jwt(token) {
+                    Ok(data) => {
+                        let role = data.claims.role;
+                        if role != "admin" && role != "hq" {
+                            return axum::Json(json!({"status":"error","error":"forbidden"}));
+                        }
+                        match sqlx::query("SELECT id, email, role, name FROM users").fetch_all(&state.pool).await {
+                            Ok(rows) => {
+                                let users: Vec<serde_json::Value> = rows.iter().map(|r| {
+                                    json!({
+                                        "id": r.get::<i64, _>("id"),
+                                        "email": r.get::<String, _>("email"),
+                                        "name": r.get::<Option<String>, _>("name"),
+                                        "role": r.get::<String, _>("role"),
+                                    })
+                                }).collect();
+                                return axum::Json(json!({"status":"ok","users": users}));
+                            }
+                            Err(e) => {
+                                tracing::error!("db error: {:?}", e);
+                                return axum::Json(json!({"status":"error","error": format!("{}", e)}));
+                            }
+                        }
+                    }
+                    Err(_) => return axum::Json(json!({"status":"error","error":"invalid token"})),
+                }
+            }
+        }
+    }
+    axum::Json(json!({"status":"error","error":"missing authorization"}))
 }
