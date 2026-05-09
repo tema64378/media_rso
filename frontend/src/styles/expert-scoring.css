@@ -1,0 +1,101 @@
+.expert-scoring-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.submission-preview {
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+}
+
+.submission-preview h1 {
+  margin: 0 0 12px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.submission-preview .author {
+  opacity: 0.9;
+  margin-bottom: 16px;
+}
+
+.submission-preview .description {
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.submission-link {
+  display: inline-block;
+  background: white;
+  color: #667eea;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.scoring-form {
+  padding: 24px;
+  background: #f8f9ff;
+  border-radius: 12px;
+}
+
+.scoring-form h2 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 20px;
+}
+
+.criterion-score {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.criterion-score:last-of-type {
+  border-bottom: none;
+}
+
+.criterion-score label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.score-slider {
+  width: 100%;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.score-value {
+  display: block;
+  text-align: right;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.comment-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+}
+
+@media (max-width: 768px) {
+  .expert-scoring-container {
+    grid-template-columns: 1fr;
+  }
+}

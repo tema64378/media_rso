@@ -21,11 +21,17 @@ export default function Header({ showNav = true, isLoggedIn = false, onLogout }:
             <Link to="/" className="nav-link">
               Главная
             </Link>
-            <Link to="/submissions" className="nav-link">
-              Работы
+            <Link to="/gallery" className="nav-link">
+              Галерея
+            </Link>
+            <Link to="/results" className="nav-link">
+              Результаты
             </Link>
             {isLoggedIn && (
               <>
+                <Link to="/submissions" className="nav-link">
+                  Загрузить
+                </Link>
                 <Link to="/profile" className="nav-link">
                   Профиль
                 </Link>

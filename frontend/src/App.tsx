@@ -6,6 +6,9 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Submissions from "./pages/Submissions";
 import AdminPanel from "./pages/AdminPanel";
+import ExpertScoring from "./pages/ExpertScoring";
+import Gallery from "./pages/Gallery";
+import Results from "./pages/Results";
 import NotFound from "./pages/NotFound";
 import "./styles.css";
 
@@ -68,6 +71,11 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/submissions" element={<Submissions />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/results" element={<Results />} />
+          {userRole === "expert" && (
+            <Route path="/scoring/:id" element={<ExpertScoring />} />
+          )}
           {(userRole === "admin" || userRole === "hq") && (
             <Route path="/admin" element={<AdminPanel />} />
           )}
