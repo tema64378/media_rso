@@ -52,7 +52,7 @@ async fn main() {
         .route("/criteria", get(list_criteria).with_state(state.clone()))
         .with_state(state);
 
-    let addr = SocketAddr::from(([127,0,0,1], 8081));
+    let addr = SocketAddr::from(([127,0,0,1], 3001));
     tracing::info!("listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
