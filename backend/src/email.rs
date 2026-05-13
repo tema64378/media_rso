@@ -136,6 +136,11 @@ pub async fn send_password_reset_email(to: &str, name: &str, token: &str) -> Res
     send_email(to, "Восстановление пароля — «Медиа РСО»", &body).await
 }
 
+pub async fn send_notification_email(to: &str, subject: &str, body_text: &str) -> Result<(), String> {
+    let body = wrap_html(body_text);
+    send_email(to, subject, &body).await
+}
+
 pub async fn notify_admins_submission(pool: &crate::db::DbPool, title: &str, author_name: &str) {
     let admins = sqlx::query("SELECT email FROM users WHERE role IN ('admin', 'hq')")
         .fetch_all(pool).await.unwrap_or_default();

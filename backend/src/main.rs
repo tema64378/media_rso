@@ -1,4 +1,4 @@
-use axum::{routing::{get, post, put, MethodRouter}, Router};
+use axum::{routing::{delete, get, post, put, MethodRouter}, Router};
 use axum::extract::Multipart;
 use serde::Deserialize;
 use serde_json::json;
@@ -134,12 +134,26 @@ async fn main() {
         .route("/admin/reports/nominations", get(admin_nomination_report).with_state(state.clone()))
         .route("/criteria", get(list_criteria).with_state(state.clone()))
         .route("/nominations", get(list_nominations).with_state(state.clone()))
+        .route("/admin/nominations", post(admin_create_nomination).with_state(state.clone()))
+        .route("/admin/nominations/:id", put(admin_update_nomination).delete(admin_delete_nomination).with_state(state.clone()))
+        .route("/admin/nominations/:id/criteria", post(admin_add_criterion).with_state(state.clone()))
+        .route("/admin/criteria/:id", delete(admin_delete_criterion).with_state(state.clone()))
+        .route("/admin/nominations/:id/experts", get(admin_nomination_experts).post(admin_add_nomination_expert).with_state(state.clone()))
+        .route("/admin/nominations/:id/experts/:expert_id", delete(admin_remove_nomination_expert).with_state(state.clone()))
+        .route("/admin/notifications", post(admin_send_notification).with_state(state.clone()))
+        .route("/admin/stages", get(admin_list_stages).post(admin_update_stage).with_state(state.clone()))
+        .route("/admin/export/users", get(admin_export_users).with_state(state.clone()))
+        .route("/admin/export/submissions", get(admin_export_submissions).with_state(state.clone()))
+        .route("/admin/export/scores", get(admin_export_scores).with_state(state.clone()))
         .route("/admin/users/:id/nominations", get(get_user_nominations).post(update_user_nominations).with_state(state.clone()))
         .route("/forgot-password", post(forgot_password))
         .route("/reset-password", post(reset_password))
         .route("/timeline", get(get_timeline))
         .route("/settings", get(list_settings).with_state(state.clone()))
         .route("/admin/settings/:key", post(update_setting).with_state(state.clone()))
+        .route("/admin/deadlines", get(admin_list_deadlines).with_state(state.clone()))
+        .route("/admin/deadlines", post(admin_create_deadline).with_state(state.clone()))
+        .route("/admin/deadlines/:id", delete(admin_delete_deadline).with_state(state.clone()))
         .route("/media-teams", post(create_media_team).with_state(state.clone()))
         .route("/media-teams/mine", get(get_my_team).with_state(state.clone()))
         .route("/media-teams/leave", post(leave_media_team).with_state(state.clone()))
@@ -1607,6 +1621,354 @@ async fn search_users(
             })).collect();
             axum::Json(json!({"status":"ok","users": users}))
         }
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+// ─── Nominations CRUD ───
+#[derive(Deserialize)]
+struct CreateNominationPayload { name: String, description: Option<String> }
+
+async fn admin_create_nomination(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::Json(payload): axum::Json<CreateNominationPayload>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("INSERT INTO nominations (name, description) VALUES (?, ?)")
+        .bind(&payload.name).bind(&payload.description).execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+async fn admin_update_nomination(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+    axum::Json(payload): axum::Json<CreateNominationPayload>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("UPDATE nominations SET name = ?, description = ? WHERE id = ?")
+        .bind(&payload.name).bind(&payload.description).bind(id).execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+async fn admin_delete_nomination(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> axum::Json<serde_json::Value> {
+    let _ = sqlx::query("DELETE FROM criteria WHERE nomination_id = ?").bind(id).execute(&state.pool).await;
+    match sqlx::query("DELETE FROM nominations WHERE id = ?").bind(id).execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+#[derive(Deserialize)]
+struct AddCriterionPayload { name: String, max_score: i32, weight: Option<f64> }
+
+async fn admin_add_criterion(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path(nomination_id): axum::extract::Path<i64>,
+    axum::Json(payload): axum::Json<AddCriterionPayload>,
+) -> axum::Json<serde_json::Value> {
+    let w = payload.weight.unwrap_or(1.0);
+    match sqlx::query("INSERT INTO criteria (nomination_id, name, max_score, weight) VALUES (?, ?, ?, ?)")
+        .bind(nomination_id).bind(&payload.name).bind(payload.max_score).bind(w)
+        .execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+async fn admin_delete_criterion(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("DELETE FROM criteria WHERE id = ?").bind(id).execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+// ─── Nomination Experts ───
+async fn admin_nomination_experts(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path(nomination_id): axum::extract::Path<i64>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query(
+        "SELECT u.id, u.email, u.name FROM users u JOIN nomination_experts ne ON u.id = ne.expert_id WHERE ne.nomination_id = ?"
+    ).bind(nomination_id).fetch_all(&state.pool).await
+    {
+        Ok(rows) => {
+            let experts: Vec<serde_json::Value> = rows.iter().map(|r| json!({
+                "id": r.get::<i64,_>("id"),
+                "email": r.get::<String,_>("email"),
+                "name": r.get::<Option<String>,_>("name"),
+            })).collect();
+            axum::Json(json!({"status":"ok","experts": experts}))
+        }
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+#[derive(Deserialize)]
+struct AddExpertPayload { expert_id: i64 }
+
+async fn admin_add_nomination_expert(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path(nomination_id): axum::extract::Path<i64>,
+    axum::Json(payload): axum::Json<AddExpertPayload>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("INSERT OR IGNORE INTO nomination_experts (nomination_id, expert_id) VALUES (?, ?)")
+        .bind(nomination_id).bind(payload.expert_id).execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+async fn admin_remove_nomination_expert(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path((nomination_id, expert_id)): axum::extract::Path<(i64, i64)>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("DELETE FROM nomination_experts WHERE nomination_id = ? AND expert_id = ?")
+        .bind(nomination_id).bind(expert_id).execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+// ─── Notifications ───
+#[derive(Deserialize)]
+struct SendNotificationPayload { subject: String, body: String, target_role: String }
+
+async fn admin_send_notification(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::Json(payload): axum::Json<SendNotificationPayload>,
+) -> axum::Json<serde_json::Value> {
+    let role_filter = match payload.target_role.as_str() {
+        "participant" => "WHERE role = 'participant'",
+        "expert" => "WHERE role = 'expert'",
+        "admin" => "WHERE role IN ('admin', 'hq')",
+        _ => "",
+    };
+    let q = format!("SELECT email, name FROM users {}", role_filter);
+    match sqlx::query(&q).fetch_all(&state.pool).await {
+        Ok(rows) => {
+            let mut sent = 0;
+            let mut failed = 0;
+            for row in rows {
+                let email: String = row.get("email");
+                let name: Option<String> = row.get("name");
+                let body_text = format!(
+                    "<h2>{}</h2><p>Здравствуйте, {}!</p><p>{}</p>",
+                    payload.subject, name.unwrap_or_default(), payload.body
+                );
+                match email::send_notification_email(&email, &payload.subject, &body_text).await {
+                    Ok(_) => sent += 1,
+                    Err(_) => failed += 1,
+                }
+            }
+            axum::Json(json!({"status":"ok","sent": sent, "failed": failed}))
+        }
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+// ─── Stages ───
+#[derive(Deserialize)]
+struct UpdateStagePayload { enabled: Option<bool>, deadline_at: Option<String> }
+
+async fn admin_list_stages(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("SELECT id, key, title, enabled, deadline_at FROM stages ORDER BY id ASC")
+        .fetch_all(&state.pool).await
+    {
+        Ok(rows) => {
+            let stages: Vec<serde_json::Value> = rows.iter().map(|r| json!({
+                "id": r.get::<i64,_>("id"),
+                "key": r.get::<String,_>("key"),
+                "title": r.get::<String,_>("title"),
+                "enabled": r.get::<i32,_>("enabled") == 1,
+                "deadline_at": r.get::<Option<String>,_>("deadline_at"),
+            })).collect();
+            axum::Json(json!({"status":"ok","stages": stages}))
+        }
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+async fn admin_update_stage(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> axum::Json<serde_json::Value> {
+    let key = match params.get("key") {
+        Some(k) => k,
+        None => return axum::Json(json!({"status":"error","error":"key required"})),
+    };
+    if let Some(val) = params.get("enabled") {
+        let enabled: i32 = if val == "true" || val == "1" { 1 } else { 0 };
+        let _ = sqlx::query("UPDATE stages SET enabled = ? WHERE key = ?")
+            .bind(enabled).bind(key).execute(&state.pool).await;
+    }
+    if let Some(val) = params.get("deadline_at") {
+        let _ = sqlx::query("UPDATE stages SET deadline_at = ? WHERE key = ?")
+            .bind(val).bind(key).execute(&state.pool).await;
+    }
+    axum::Json(json!({"status":"ok"}))
+}
+
+// ─── Export ───
+async fn admin_export_users(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> Result<(axum::http::StatusCode, [(String, String); 2], String), (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
+    match sqlx::query("SELECT id, email, name, role, team_name, squad_name, position, created_at FROM users ORDER BY id")
+        .fetch_all(&state.pool).await
+    {
+        Ok(rows) => {
+            let mut csv = String::from("ID,Email,Имя,Роль,Отряд,Регион,Должность,Дата регистрации\n");
+            for r in &rows {
+                csv.push_str(&format!(
+                    "{},{},{},{},{},{},{},{}\n",
+                    r.get::<i64,_>("id"),
+                    r.get::<String,_>("email"),
+                    r.get::<Option<String>,_>("name").unwrap_or_default(),
+                    r.get::<String,_>("role"),
+                    r.get::<Option<String>,_>("team_name").unwrap_or_default(),
+                    r.get::<Option<String>,_>("squad_name").unwrap_or_default(),
+                    r.get::<Option<String>,_>("position").unwrap_or_default(),
+                    r.get::<String,_>("created_at"),
+                ));
+            }
+            Ok((axum::http::StatusCode::OK, [
+                ("Content-Type".into(), "text/csv; charset=utf-8".into()),
+                ("Content-Disposition".into(), "attachment; filename=users.csv".into()),
+            ], csv))
+        }
+        Err(e) => Err((axum::http::StatusCode::INTERNAL_SERVER_ERROR, axum::Json(json!({"status":"error","error": format!("{}", e)})))),
+    }
+}
+
+async fn admin_export_submissions(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> Result<(axum::http::StatusCode, [(String, String); 2], String), (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
+    match sqlx::query(
+        "SELECT s.id, s.title, u.name AS author, u.email, n.name AS nomination, s.status, s.created_at \
+         FROM submissions s JOIN users u ON s.user_id = u.id JOIN nominations n ON s.nomination_id = n.id ORDER BY s.id"
+    ).fetch_all(&state.pool).await
+    {
+        Ok(rows) => {
+            let mut csv = String::from("ID,Название,Автор,Email,Номинация,Статус,Дата\n");
+            for r in &rows {
+                csv.push_str(&format!(
+                    "{},{},{},{},{},{},{}\n",
+                    r.get::<i64,_>("id"),
+                    r.get::<String,_>("title"),
+                    r.get::<Option<String>,_>("author").unwrap_or_default(),
+                    r.get::<String,_>("email"),
+                    r.get::<String,_>("nomination"),
+                    r.get::<String,_>("status"),
+                    r.get::<String,_>("created_at"),
+                ));
+            }
+            Ok((axum::http::StatusCode::OK, [
+                ("Content-Type".into(), "text/csv; charset=utf-8".into()),
+                ("Content-Disposition".into(), "attachment; filename=submissions.csv".into()),
+            ], csv))
+        }
+        Err(e) => Err((axum::http::StatusCode::INTERNAL_SERVER_ERROR, axum::Json(json!({"status":"error","error": format!("{}", e)})))),
+    }
+}
+
+async fn admin_export_scores(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> Result<(axum::http::StatusCode, [(String, String); 2], String), (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
+    match sqlx::query(
+        "SELECT s.id, s.title, u.name AS author, n.name AS nomination, sc.score, sc.created_at \
+         FROM scores sc JOIN submissions s ON sc.submission_id = s.id \
+         JOIN users u ON s.user_id = u.id JOIN nominations n ON s.nomination_id = n.id ORDER BY s.id"
+    ).fetch_all(&state.pool).await
+    {
+        Ok(rows) => {
+            let mut csv = String::from("ID работы,Название,Автор,Номинация,Балл,Дата оценки\n");
+            for r in &rows {
+                csv.push_str(&format!(
+                    "{},{},{},{},{},{}\n",
+                    r.get::<i64,_>("id"),
+                    r.get::<String,_>("title"),
+                    r.get::<Option<String>,_>("author").unwrap_or_default(),
+                    r.get::<String,_>("nomination"),
+                    r.get::<i32,_>("score"),
+                    r.get::<String,_>("created_at"),
+                ));
+            }
+            Ok((axum::http::StatusCode::OK, [
+                ("Content-Type".into(), "text/csv; charset=utf-8".into()),
+                ("Content-Disposition".into(), "attachment; filename=scores.csv".into()),
+            ], csv))
+        }
+        Err(e) => Err((axum::http::StatusCode::INTERNAL_SERVER_ERROR, axum::Json(json!({"status":"error","error": format!("{}", e)})))),
+    }
+}
+
+#[derive(Deserialize)]
+struct CreateDeadlinePayload {
+    title: String,
+    deadline_at: String,
+    target_role: String,
+}
+
+async fn admin_list_deadlines(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("SELECT id, title, deadline_at, target_role, created_at FROM deadlines ORDER BY deadline_at ASC")
+        .fetch_all(&state.pool).await
+    {
+        Ok(rows) => {
+            let deadlines: Vec<serde_json::Value> = rows.iter().map(|r| json!({
+                "id": r.get::<i64,_>("id"),
+                "title": r.get::<String,_>("title"),
+                "deadline_at": r.get::<String,_>("deadline_at"),
+                "target_role": r.get::<String,_>("target_role"),
+                "created_at": r.get::<String,_>("created_at"),
+            })).collect();
+            axum::Json(json!({"status":"ok","deadlines": deadlines}))
+        }
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+async fn admin_create_deadline(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::Json(payload): axum::Json<CreateDeadlinePayload>,
+) -> axum::Json<serde_json::Value> {
+    if payload.target_role != "participant" && payload.target_role != "expert" && payload.target_role != "both" {
+        return axum::Json(json!({"status":"error","error":"target_role должен быть participant, expert или both"}));
+    }
+    match sqlx::query("INSERT INTO deadlines (title, deadline_at, target_role) VALUES (?, ?, ?)")
+        .bind(&payload.title).bind(&payload.deadline_at).bind(&payload.target_role)
+        .execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
+        Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
+    }
+}
+
+async fn admin_delete_deadline(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> axum::Json<serde_json::Value> {
+    match sqlx::query("DELETE FROM deadlines WHERE id = ?")
+        .bind(id).execute(&state.pool).await
+    {
+        Ok(_) => axum::Json(json!({"status":"ok"})),
         Err(e) => axum::Json(json!({"status":"error","error": format!("{}", e)})),
     }
 }

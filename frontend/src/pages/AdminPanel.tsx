@@ -43,7 +43,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-type Tab = "stats" | "users" | "submissions" | "deadlines" | "nominations" | "audit" | "reports";
+type Tab = "stats" | "users" | "submissions" | "deadlines" | "nominations" | "experts" | "notifications" | "stages" | "export" | "audit" | "reports";
 
 const tabs: { key: Tab; label: string }[] = [
   { key: "stats", label: "Статистика" },
@@ -51,6 +51,10 @@ const tabs: { key: Tab; label: string }[] = [
   { key: "submissions", label: "Работы" },
   { key: "deadlines", label: "Дедлайны" },
   { key: "nominations", label: "Номинации" },
+  { key: "experts", label: "Эксперты" },
+  { key: "notifications", label: "Рассылка" },
+  { key: "stages", label: "Этапы" },
+  { key: "export", label: "Экспорт" },
   { key: "audit", label: "Журнал" },
   { key: "reports", label: "Отчёты" },
 ];
@@ -68,8 +72,20 @@ export default function AdminPanel() {
   const [roleMap, setRoleMap] = useState<Record<number, string>>({});
   const [expandedNom, setExpandedNom] = useState<number | null>(null);
   const [settings, setSettings] = useState<Record<string, any>>({});
-  const [editingDeadline, setEditingDeadline] = useState<string | null>(null);
-  const [deadlineValue, setDeadlineValue] = useState("");
+  const [nomForm, setNomForm] = useState({ name: "", description: "" });
+  const [editingNom, setEditingNom] = useState<any>(null);
+  const [criterionForm, setCriterionForm] = useState<Record<number, { name: string; max_score: number; weight: number }>>({});
+  const [nomExperts, setNomExperts] = useState<Record<number, any[]>>({});
+  const [expertUsers, setExpertUsers] = useState<any[]>([]);
+  const [notifForm, setNotifForm] = useState({ subject: "", body: "", target_role: "participant" });
+  const [sendingNotif, setSendingNotif] = useState(false);
+  const [notifResult, setNotifResult] = useState<string | null>(null);
+  const [stages, setStages] = useState<any[]>([]);
+  const [deadlines, setDeadlines] = useState<any[]>([]);
+  const [newDeadlineTitle, setNewDeadlineTitle] = useState("");
+  const [newDeadlineAt, setNewDeadlineAt] = useState("");
+  const [newDeadlineRole, setNewDeadlineRole] = useState("both");
+  const [creatingDeadline, setCreatingDeadline] = useState(false);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [moderating, setModerating] = useState<number | null>(null);
   const [modComment, setModComment] = useState("");
@@ -83,7 +99,7 @@ export default function AdminPanel() {
     fetchStats();
     fetchUsers();
     fetchNominations();
-    fetchSettings();
+    fetchDeadlines();
     fetchSubmissions();
     fetchAuditLog();
     fetchReports();
@@ -139,16 +155,126 @@ export default function AdminPanel() {
     if (data?.status === "ok") setReports(data.reports || []);
   };
 
-  const saveDeadline = async (key: string) => {
-    const data = await apiFetch(`${BASE}/admin/settings/${key}`, {
+  const fetchDeadlines = async () => {
+    const data = await apiFetch(`${BASE}/admin/deadlines`);
+    if (data?.status === "ok") setDeadlines(data.deadlines || []);
+  };
+
+  const fetchNomExperts = async (nomId: number) => {
+    const data = await apiFetch(`${BASE}/admin/nominations/${nomId}/experts`);
+    if (data?.status === "ok") setNomExperts(prev => ({ ...prev, [nomId]: data.experts || [] }));
+  };
+
+  const fetchStages = async () => {
+    const data = await apiFetch(`${BASE}/admin/stages`);
+    if (data?.status === "ok") setStages(data.stages || []);
+  };
+
+  // Also load expert users for assignment
+  useEffect(() => {
+    apiFetch(`${BASE}/admin/users`).then(data => {
+      if (data?.status === "ok") setExpertUsers((data.users || []).filter((u: any) => u.role === "expert"));
+    });
+  }, []);
+
+  const createNomination = async () => {
+    if (!nomForm.name) return;
+    const data = await apiFetch(`${BASE}/admin/nominations`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nomForm),
+    });
+    if (data?.status === "ok") { setNomForm({ name: "", description: "" }); fetchNominations(); }
+    else alert(data?.error || "Ошибка");
+  };
+
+  const updateNomination = async () => {
+    if (!editingNom || !nomForm.name) return;
+    const data = await apiFetch(`${BASE}/admin/nominations/${editingNom.id}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nomForm),
+    });
+    if (data?.status === "ok") { setEditingNom(null); setNomForm({ name: "", description: "" }); fetchNominations(); }
+    else alert(data?.error || "Ошибка");
+  };
+
+  const deleteNomination = async (id: number) => {
+    if (!confirm("Удалить номинацию?")) return;
+    const data = await apiFetch(`${BASE}/admin/nominations/${id}`, { method: "DELETE" });
+    if (data?.status === "ok") fetchNominations();
+    else alert(data?.error || "Ошибка");
+  };
+
+  const addCriterion = async (nomId: number) => {
+    const cf = criterionForm[nomId];
+    if (!cf || !cf.name) return;
+    const data = await apiFetch(`${BASE}/admin/nominations/${nomId}/criteria`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: cf.name, max_score: cf.max_score, weight: cf.weight }),
+    });
+    if (data?.status === "ok") { setCriterionForm(prev => ({ ...prev, [nomId]: { name: "", max_score: 10, weight: 1 } })); fetchNominations(); }
+    else alert(data?.error || "Ошибка");
+  };
+
+  const deleteCriterion = async (id: number) => {
+    const data = await apiFetch(`${BASE}/admin/criteria/${id}`, { method: "DELETE" });
+    if (data?.status === "ok") fetchNominations();
+    else alert(data?.error || "Ошибка");
+  };
+
+  const addNominationExpert = async (nomId: number, expertId: number) => {
+    const data = await apiFetch(`${BASE}/admin/nominations/${nomId}/experts`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expert_id: expertId }),
+    });
+    if (data?.status === "ok") fetchNomExperts(nomId);
+    else alert(data?.error || "Ошибка");
+  };
+
+  const removeNominationExpert = async (nomId: number, expertId: number) => {
+    const data = await apiFetch(`${BASE}/admin/nominations/${nomId}/experts/${expertId}`, { method: "DELETE" });
+    if (data?.status === "ok") fetchNomExperts(nomId);
+    else alert(data?.error || "Ошибка");
+  };
+
+  const sendNotification = async () => {
+    if (!notifForm.subject || !notifForm.body) { alert("Заполните все поля"); return; }
+    setSendingNotif(true);
+    setNotifResult(null);
+    const data = await apiFetch(`${BASE}/admin/notifications`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(notifForm),
+    });
+    setSendingNotif(false);
+    if (data?.status === "ok") {
+      setNotifResult(`Отправлено: ${data.sent}, ошибок: ${data.failed}`);
+      setNotifForm({ subject: "", body: "", target_role: "participant" });
+    } else { alert(data?.error || "Ошибка"); }
+  };
+
+  const toggleStage = async (key: string, enabled: boolean) => {
+    const data = await apiFetch(`${BASE}/admin/stages?key=${key}&enabled=${enabled}`, { method: "POST" });
+    if (data?.status === "ok") fetchStages();
+  };
+
+  const createDeadline = async () => {
+    if (!newDeadlineTitle || !newDeadlineAt) { alert("Заполните все поля"); return; }
+    setCreatingDeadline(true);
+    const data = await apiFetch(`${BASE}/admin/deadlines`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ value: deadlineValue }),
+      body: JSON.stringify({ title: newDeadlineTitle, deadline_at: newDeadlineAt, target_role: newDeadlineRole }),
     });
+    setCreatingDeadline(false);
     if (data?.status === "ok") {
-      setSettings(prev => ({ ...prev, [key]: { ...prev[key], value: deadlineValue } }));
-      setEditingDeadline(null);
+      setNewDeadlineTitle(""); setNewDeadlineAt(""); setNewDeadlineRole("both");
+      fetchDeadlines();
     } else { alert(data?.error || "Ошибка"); }
+  };
+
+  const deleteDeadline = async (id: number) => {
+    const data = await apiFetch(`${BASE}/admin/deadlines/${id}`, { method: "DELETE" });
+    if (data?.status === "ok") fetchDeadlines();
+    else alert(data?.error || "Ошибка");
   };
 
   const fetchUserNoms = async (userId: number) => {
@@ -501,41 +627,101 @@ export default function AdminPanel() {
       {tab === "deadlines" && (
         <ScrollReveal delay={160}>
         <section style={{ background: "var(--bg-card)", borderRadius: "60px", padding: "3rem", marginBottom: "2rem" }}>
-          <h2 style={sectionTitle}>Дедлайны</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
-            {Object.values(settings).map((s: any) => (
-              <div key={s.key} style={{ padding: "1.5rem", borderRadius: "24px", background: "var(--bg-card-alt)" }}>
-                <div style={{ fontFamily: "'Stolzl', sans-serif", fontWeight: 600, fontSize: "1rem", color: "var(--text)", marginBottom: "0.5rem" }}>
-                  {s.description || s.key}
-                </div>
-                {editingDeadline === s.key ? (
-                  <div style={{ display: "flex", gap: "0.5rem", flexDirection: "column" }}>
-                    <input type="datetime-local"
-                      value={deadlineValue.replace("Z", "").substring(0, 16)}
-                      onChange={e => setDeadlineValue(e.target.value + ":00")}
-                      style={{
-                        padding: "0.75rem 1rem", border: "1px solid var(--border)",
-                        borderRadius: "0.75rem", background: "var(--bg-input)", color: "var(--text)",
-                        fontFamily: "'Onest', sans-serif", fontSize: "1rem",
-                      }} />
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <button onClick={() => saveDeadline(s.key)} style={btnSm}>Сохранить</button>
-                      <button onClick={() => setEditingDeadline(null)} style={btnOutline}>✕</button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+            <h2 style={sectionTitle}>Дедлайны</h2>
+            <button onClick={fetchDeadlines} style={btnOutlineSm}>Обновить</button>
+          </div>
+
+          {/* Create form */}
+          <div style={{ padding: "2rem", borderRadius: "40px", background: "var(--bg-card-alt)", marginBottom: "2rem" }}>
+            <h3 style={{ fontFamily: "'Actay Wide', sans-serif", fontWeight: 700, fontSize: "1.25rem", color: "var(--text)", marginBottom: "1.5rem" }}>
+              Создать дедлайн
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <input placeholder="Название (например, «Приём работ»)" value={newDeadlineTitle}
+                onChange={e => setNewDeadlineTitle(e.target.value)}
+                style={{
+                  width: "100%", padding: "1rem 1.25rem", border: "1px solid var(--border)",
+                  borderRadius: "24px", background: "var(--bg-input)", color: "var(--text)",
+                  fontFamily: "'Onest', sans-serif", fontSize: "1rem",
+                }} />
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                <input type="datetime-local" value={newDeadlineAt}
+                  onChange={e => setNewDeadlineAt(e.target.value + ":00")}
+                  style={{
+                    flex: 1, padding: "1rem 1.25rem", border: "1px solid var(--border)",
+                    borderRadius: "24px", background: "var(--bg-input)", color: "var(--text)",
+                    fontFamily: "'Onest', sans-serif", fontSize: "1rem",
+                  }} />
+                <select value={newDeadlineRole}
+                  onChange={e => setNewDeadlineRole(e.target.value)}
+                  style={{
+                    flex: 1, padding: "1rem 1.25rem", border: "1px solid var(--border)",
+                    borderRadius: "24px", background: "var(--bg-input)", color: "var(--text)",
+                    fontFamily: "'Onest', sans-serif", fontSize: "1rem", cursor: "pointer",
+                  }}>
+                  <option value="both">Для всех</option>
+                  <option value="participant">Для участников</option>
+                  <option value="expert">Для экспертов</option>
+                </select>
+              </div>
+              <button onClick={createDeadline} disabled={creatingDeadline} style={{
+                padding: "1rem 2rem", borderRadius: "100px", border: "none",
+                background: "var(--accent)", color: "#fff", fontWeight: 700,
+                fontFamily: "'Stolzl', sans-serif", fontSize: "1rem", cursor: "pointer",
+                alignSelf: "flex-start",
+              }}>
+                {creatingDeadline ? "Создание..." : "Создать дедлайн"}
+              </button>
+            </div>
+          </div>
+
+          {/* List */}
+          {deadlines.length === 0 ? (
+            <p style={{ fontFamily: "'Onest', sans-serif", fontSize: "1.125rem", color: "var(--text-muted)", textAlign: "center", padding: "3rem" }}>
+              Нет дедлайнов
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {deadlines.map((d: any) => (
+                <div key={d.id} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "1.5rem 2rem", borderRadius: "32px", background: "var(--bg-card-alt)",
+                  flexWrap: "wrap", gap: "1rem",
+                }}>
+                  <div style={{ flex: 1, minWidth: "200px" }}>
+                    <div style={{ fontFamily: "'Actay Wide', sans-serif", fontWeight: 700, fontSize: "1.125rem", color: "var(--text)", marginBottom: "0.25rem" }}>
+                      {d.title}
+                    </div>
+                    <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{ fontFamily: "'Onest', sans-serif", fontSize: "0.9375rem", color: "var(--text-tertiary)" }}>
+                        {new Date(d.deadline_at).toLocaleString("ru-RU")}
+                      </span>
+                      <span style={{
+                        display: "inline-block", padding: "0.25rem 0.75rem",
+                        background: d.target_role === "expert" ? "rgba(59,130,246,0.15)" :
+                          d.target_role === "participant" ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)",
+                        color: d.target_role === "expert" ? "#3B82F6" :
+                          d.target_role === "participant" ? "#10B981" : "#8B5CF6",
+                        borderRadius: "100px", fontSize: "0.8125rem", fontWeight: 600,
+                        fontFamily: "'Stolzl', sans-serif",
+                      }}>
+                        {d.target_role === "expert" ? "Эксперты" : d.target_role === "participant" ? "Участники" : "Все"}
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontFamily: "'Actay Wide', sans-serif", fontWeight: 700, fontSize: "1.125rem", color: "var(--accent)" }}>
-                      {new Date(s.value).toLocaleString("ru-RU")}
-                    </span>
-                    <button onClick={() => { setEditingDeadline(s.key); setDeadlineValue(s.value); }} style={btnOutlineSm}>
-                      Изменить
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                  <button onClick={() => deleteDeadline(d.id)} style={{
+                    padding: "0.5rem 1.25rem", borderRadius: "100px",
+                    border: "1px solid #EF4444", background: "transparent",
+                    color: "#EF4444", cursor: "pointer",
+                    fontFamily: "'Stolzl', sans-serif", fontSize: "0.875rem", fontWeight: 600,
+                  }}>
+                    Удалить
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </ScrollReveal>
       )}
@@ -543,18 +729,246 @@ export default function AdminPanel() {
       {/* Tab: Nominations */}
       {tab === "nominations" && (
         <ScrollReveal delay={240}>
-        <section style={{ background: "var(--bg-card)", borderRadius: "60px", padding: "3rem" }}>
-          <h2 style={sectionTitle}>Номинации конкурса</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
-            {nominations.map(nom => (
-              <div key={nom.id} style={{ padding: "1.5rem", borderRadius: "24px", background: "var(--bg-card-alt)", transition: "transform 0.2s" }}>
-                <div style={{ fontFamily: "'Actay Wide', sans-serif", fontWeight: 700, fontSize: "1.125rem", color: "var(--accent)", marginBottom: "0.5rem" }}>
-                  {nom.name}
+        <section style={{ background: "var(--bg-card)", borderRadius: "60px", padding: "3rem", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+            <h2 style={sectionTitle}>Номинации</h2>
+            <button onClick={() => { setEditingNom(null); setNomForm({ name: "", description: "" }); }} style={editingNom === null && nomForm.name ? { ...btnSm, opacity: 0.5 } : btnSm}>
+              + Новая
+            </button>
+          </div>
+
+          {/* Create/Edit Form */}
+          <div style={{ padding: "2rem", borderRadius: "40px", background: "var(--bg-card-alt)", marginBottom: "2rem" }}>
+            <h3 style={{ fontFamily: "'Actay Wide', sans-serif", fontWeight: 700, fontSize: "1.125rem", color: "var(--text)", marginBottom: "1rem" }}>
+              {editingNom ? `Редактировать: ${editingNom.name}` : "Создать номинацию"}
+            </h3>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+              <input placeholder="Название" value={nomForm.name}
+                onChange={e => setNomForm(prev => ({ ...prev, name: e.target.value }))}
+                style={{ flex: 2, padding: "0.75rem 1rem", border: "1px solid var(--border)", borderRadius: "16px", background: "var(--bg-input)", color: "var(--text)", fontFamily: "'Onest', sans-serif" }} />
+              <input placeholder="Описание" value={nomForm.description}
+                onChange={e => setNomForm(prev => ({ ...prev, description: e.target.value }))}
+                style={{ flex: 3, padding: "0.75rem 1rem", border: "1px solid var(--border)", borderRadius: "16px", background: "var(--bg-input)", color: "var(--text)", fontFamily: "'Onest', sans-serif" }} />
+            </div>
+            <button onClick={editingNom ? updateNomination : createNomination} style={btnSm}>
+              {editingNom ? "Сохранить" : "Создать"}
+            </button>
+            {editingNom && <button onClick={() => { setEditingNom(null); setNomForm({ name: "", description: "" }); }} style={{ ...btnOutline, marginLeft: "0.5rem" }}>Отмена</button>}
+          </div>
+
+          {/* List */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {nominations.map(nom => {
+              const isEditingNom = editingNom?.id === nom.id;
+              const experts = nomExperts[nom.id] || [];
+              const cf = criterionForm[nom.id] || { name: "", max_score: 10, weight: 1 };
+              return (
+                <div key={nom.id} style={{ padding: "2rem", borderRadius: "32px", background: "var(--bg-card-alt)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
+                    <div>
+                      <div style={{ fontFamily: "'Actay Wide', sans-serif", fontWeight: 700, fontSize: "1.25rem", color: "var(--accent)" }}>
+                        {nom.name}
+                      </div>
+                      <p style={{ fontFamily: "'Onest', sans-serif", fontSize: "0.9375rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                        {nom.description || "—"}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button onClick={() => { setEditingNom(nom); setNomForm({ name: nom.name, description: nom.description || "" }); }} style={btnOutlineSm}>✎</button>
+                      <button onClick={() => deleteNomination(nom.id)} style={{ ...btnOutlineSm, color: "#EF4444", borderColor: "#EF4444" }}>✕</button>
+                    </div>
+                  </div>
+
+                  {/* Criteria */}
+                  <div style={{ marginBottom: "1rem" }}>
+                    <div style={{ fontFamily: "'Stolzl', sans-serif", fontWeight: 600, fontSize: "0.875rem", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>
+                      Критерии оценки
+                    </div>
+                    {nom.criteria && nom.criteria.length > 0 ? (
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        {nom.criteria.map((c: any) => (
+                          <span key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.375rem 0.75rem", borderRadius: "100px", background: "rgba(var(--accent-rgb), 0.1)", color: "var(--text)", fontSize: "0.875rem" }}>
+                            {c.name} ({c.max_score} б.)
+                            <button onClick={() => deleteCriterion(c.id)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", padding: 0, fontSize: "1rem", lineHeight: 1 }}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: "0.875rem", color: "var(--text-subtle)" }}>Нет критериев</span>
+                    )}
+                  </div>
+
+                  {/* Add criterion */}
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                    <input placeholder="Название критерия" value={cf.name}
+                      onChange={e => setCriterionForm(prev => ({ ...prev, [nom.id]: { ...prev[nom.id], name: e.target.value, max_score: prev[nom.id]?.max_score || 10, weight: prev[nom.id]?.weight || 1 } }))}
+                      style={{ flex: 1, minWidth: "150px", padding: "0.5rem 0.75rem", border: "1px solid var(--border)", borderRadius: "12px", background: "var(--bg-input)", color: "var(--text)", fontSize: "0.875rem" }} />
+                    <input type="number" placeholder="Макс. балл" value={cf.max_score}
+                      onChange={e => setCriterionForm(prev => ({ ...prev, [nom.id]: { ...prev[nom.id], name: prev[nom.id]?.name || "", max_score: parseInt(e.target.value) || 0, weight: prev[nom.id]?.weight || 1 } }))}
+                      style={{ width: "80px", padding: "0.5rem 0.75rem", border: "1px solid var(--border)", borderRadius: "12px", background: "var(--bg-input)", color: "var(--text)", fontSize: "0.875rem" }} />
+                    <button onClick={() => addCriterion(nom.id)} style={btnOutlineSm}>+ Критерий</button>
+                  </div>
+
+                  {/* Experts */}
+                  <div>
+                    <div style={{ fontFamily: "'Stolzl', sans-serif", fontWeight: 600, fontSize: "0.875rem", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>
+                      Эксперты номинации
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                      {experts.map((e: any) => (
+                        <span key={e.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.375rem 0.75rem", borderRadius: "100px", background: "rgba(59,130,246,0.1)", color: "#3B82F6", fontSize: "0.875rem" }}>
+                          {e.name || e.email}
+                          <button onClick={() => removeNominationExpert(nom.id, e.id)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", padding: 0 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <select onChange={e => { if (e.target.value) { addNominationExpert(nom.id, parseInt(e.target.value)); e.target.value = ""; } }}
+                        style={{ padding: "0.5rem 0.75rem", border: "1px solid var(--border)", borderRadius: "12px", background: "var(--bg-input)", color: "var(--text)", fontSize: "0.875rem" }}>
+                        <option value="">Назначить эксперта...</option>
+                        {expertUsers.filter(eu => !experts.some((e: any) => e.id === eu.id)).map((eu: any) => (
+                          <option key={eu.id} value={eu.id}>{eu.name || eu.email}</option>
+                        ))}
+                      </select>
+                      <button onClick={() => fetchNomExperts(nom.id)} style={btnOutlineSm}>Обновить</button>
+                    </div>
+                  </div>
                 </div>
-                <p style={{ fontFamily: "'Onest', sans-serif", fontSize: "0.9375rem", color: "var(--text-muted)", lineHeight: "1.6" }}>
-                  {nom.description || "—"}
-                </p>
+              );
+            })}
+          </div>
+        </section>
+      </ScrollReveal>
+      )}
+
+      {/* Tab: Experts list */}
+      {tab === "experts" && (
+        <ScrollReveal delay={240}>
+        <section style={{ background: "var(--bg-card)", borderRadius: "60px", padding: "3rem" }}>
+          <h2 style={sectionTitle}>Эксперты</h2>
+          {expertUsers.length === 0 ? (
+            <p style={{ fontFamily: "'Onest', sans-serif", fontSize: "1.125rem", color: "var(--text-muted)", textAlign: "center", padding: "3rem" }}>
+              Нет экспертов
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {expertUsers.map((eu: any) => (
+                <div key={eu.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem 1.5rem", borderRadius: "24px", background: "var(--bg-card-alt)" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Stolzl', sans-serif", fontWeight: 600, color: "var(--text)" }}>{eu.name || "—"}</div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>{eu.email}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </ScrollReveal>
+      )}
+
+      {/* Tab: Notifications */}
+      {tab === "notifications" && (
+        <ScrollReveal delay={240}>
+        <section style={{ background: "var(--bg-card)", borderRadius: "60px", padding: "3rem" }}>
+          <h2 style={sectionTitle}>Рассылка уведомлений</h2>
+          <p style={{ fontFamily: "'Onest', sans-serif", fontSize: "1rem", color: "var(--text-tertiary)", marginBottom: "2rem" }}>
+            Отправьте email-уведомление выбранной группе пользователей.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "600px" }}>
+            <input placeholder="Тема письма" value={notifForm.subject}
+              onChange={e => setNotifForm(prev => ({ ...prev, subject: e.target.value }))}
+              style={{ width: "100%", padding: "1rem 1.25rem", border: "1px solid var(--border)", borderRadius: "24px", background: "var(--bg-input)", color: "var(--text)", fontFamily: "'Onest', sans-serif", fontSize: "1rem" }} />
+            <textarea placeholder="Текст письма" value={notifForm.body}
+              onChange={e => setNotifForm(prev => ({ ...prev, body: e.target.value }))}
+              rows={6}
+              style={{ width: "100%", padding: "1rem 1.25rem", border: "1px solid var(--border)", borderRadius: "24px", background: "var(--bg-input)", color: "var(--text)", fontFamily: "'Onest', sans-serif", fontSize: "1rem", resize: "vertical" }} />
+            <select value={notifForm.target_role}
+              onChange={e => setNotifForm(prev => ({ ...prev, target_role: e.target.value }))}
+              style={{ width: "100%", padding: "1rem 1.25rem", border: "1px solid var(--border)", borderRadius: "24px", background: "var(--bg-input)", color: "var(--text)", fontFamily: "'Onest', sans-serif", fontSize: "1rem", cursor: "pointer" }}>
+              <option value="participant">Участникам</option>
+              <option value="expert">Экспертам</option>
+              <option value="admin">Администраторам</option>
+              <option value="">Всем пользователям</option>
+            </select>
+            <button onClick={sendNotification} disabled={sendingNotif} style={{
+              padding: "1rem 2rem", borderRadius: "100px", border: "none",
+              background: "var(--accent)", color: "#fff", fontWeight: 700,
+              fontFamily: "'Stolzl', sans-serif", fontSize: "1rem", cursor: "pointer",
+              alignSelf: "flex-start",
+            }}>
+              {sendingNotif ? "Отправка..." : "Отправить"}
+            </button>
+            {notifResult && <p style={{ fontFamily: "'Onest', sans-serif", fontSize: "0.9375rem", color: "var(--accent)" }}>{notifResult}</p>}
+          </div>
+        </section>
+      </ScrollReveal>
+      )}
+
+      {/* Tab: Stages */}
+      {tab === "stages" && (
+        <ScrollReveal delay={240}>
+        <section style={{ background: "var(--bg-card)", borderRadius: "60px", padding: "3rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+            <h2 style={sectionTitle}>Этапы конкурса</h2>
+            <button onClick={fetchStages} style={btnOutlineSm}>Обновить</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {stages.map(s => (
+              <div key={s.id} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "1.5rem 2rem", borderRadius: "32px", background: "var(--bg-card-alt)",
+                flexWrap: "wrap", gap: "1rem",
+              }}>
+                <div>
+                  <div style={{ fontFamily: "'Actay Wide', sans-serif", fontWeight: 700, fontSize: "1.125rem", color: "var(--text)" }}>
+                    {s.title}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--text-muted)", fontFamily: "'Onest', sans-serif" }}>
+                    {s.deadline_at ? `Дедлайн: ${new Date(s.deadline_at).toLocaleString("ru-RU")}` : "Нет дедлайна"}
+                  </div>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}>
+                  <span style={{ fontFamily: "'Stolzl', sans-serif", fontSize: "0.9375rem", color: "var(--text-tertiary)" }}>
+                    {s.enabled ? "Вкл" : "Выкл"}
+                  </span>
+                  <input type="checkbox" checked={s.enabled}
+                    onChange={e => toggleStage(s.key, e.target.checked)}
+                    style={{ accentColor: "var(--accent)", width: "20px", height: "20px", cursor: "pointer" }} />
+                </label>
               </div>
+            ))}
+          </div>
+        </section>
+      </ScrollReveal>
+      )}
+
+      {/* Tab: Export */}
+      {tab === "export" && (
+        <ScrollReveal delay={240}>
+        <section style={{ background: "var(--bg-card)", borderRadius: "60px", padding: "3rem" }}>
+          <h2 style={sectionTitle}>Экспорт данных</h2>
+          <p style={{ fontFamily: "'Onest', sans-serif", fontSize: "1rem", color: "var(--text-tertiary)", marginBottom: "2rem" }}>
+            Скачайте данные в формате CSV.
+          </p>
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            {[
+              { label: "Пользователи", url: `${BASE}/admin/export/users` },
+              { label: "Работы", url: `${BASE}/admin/export/submissions` },
+              { label: "Оценки", url: `${BASE}/admin/export/scores` },
+            ].map(item => (
+              <a key={item.label} href={item.url} target="_blank" rel="noopener noreferrer"
+                onClick={e => { e.preventDefault(); window.open(item.url + "?token=" + token, "_blank"); }}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "0.75rem",
+                  padding: "1.25rem 2rem", borderRadius: "100px",
+                  background: "var(--bg-card-alt)", color: "var(--text)",
+                  fontFamily: "'Stolzl', sans-serif", fontWeight: 600,
+                  fontSize: "1rem", textDecoration: "none",
+                  border: "1px solid var(--border)", cursor: "pointer",
+                  transition: "all 0.2s",
+                }}>
+                📥 {item.label}
+              </a>
             ))}
           </div>
         </section>
