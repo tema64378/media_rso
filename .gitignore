@@ -3,3 +3,6 @@ target
 .env
 dist
 .DS_Store
+*.log
+*.bak
+test.html
