@@ -333,17 +333,38 @@ export default function Landing({ isLoggedIn, onLogout, theme, onThemeToggle }: 
       {/* Footer */}
       <footer className="landing-footer">
         <div className="footer-main">
-          <div className="footer-brand">
-            <img src="/logos/rso-logo.svg" alt="РСО" className="footer-logo" />
-            <img src="/logos/media-rso-logo.svg" alt="Медиа РСО" className="footer-logo" />
+          <div className="footer-brand-col">
+            <div className="footer-brand">
+              <img src="/logos/rso-logo.svg" alt="РСО" className="footer-logo" />
+              <img src="/logos/media-rso-logo.svg" alt="Медиа РСО" className="footer-logo" />
+            </div>
+            <p className="footer-desc">
+              Всероссийский медиаконкурс среди студенческих отрядов. Единая платформа
+              для подачи заявок, оценки работ и итогового рейтинга.
+            </p>
           </div>
           <div className="footer-links">
             <div className="footer-col">
-              <h4 className="footer-col-title">Навигация</h4>
-              <a href="/">Главная</a>
-              <a href="/gallery">Галерея</a>
+              <h4 className="footer-col-title">О конкурсе</h4>
+              <a href="/about">О проекте</a>
+              <a href="/rules">Правила и положение</a>
+              <a href="/nominations">Номинации</a>
+              <a href="/calendar">Календарь</a>
+            </div>
+            <div className="footer-col">
+              <h4 className="footer-col-title">Участникам</h4>
               <a href="/register">Регистрация</a>
               <a href="/login">Вход</a>
+              <a href="/submissions">Загрузить работу</a>
+              <a href="/my-scores">Мои баллы</a>
+              <a href="/profile">Личный кабинет</a>
+            </div>
+            <div className="footer-col">
+              <h4 className="footer-col-title">Контакты</h4>
+              <a href="mailto:media@rso.ru">media@rso.ru</a>
+              <a href="https://vk.com/rso_media" target="_blank" rel="noopener noreferrer">ВКонтакте</a>
+              <a href="https://t.me/media_rso" target="_blank" rel="noopener noreferrer">Telegram</a>
+              <a href="/contacts">Все контакты</a>
             </div>
             <div className="footer-col">
               <h4 className="footer-col-title">Правовое</h4>
@@ -355,6 +376,8 @@ export default function Landing({ isLoggedIn, onLogout, theme, onThemeToggle }: 
                 />
                 <span>Согласие на обработку ПД</span>
               </label>
+              <a href="/privacy">Политика конфиденциальности</a>
+              <a href="/terms">Пользовательское соглашение</a>
               <span className="cookie-notice">
                 Cookies: {cookieConsent === 'accepted' ? '✓ Принято' : cookieConsent === 'declined' ? '✕ Отклонено' : 'не настроено'}
               </span>
@@ -362,7 +385,7 @@ export default function Landing({ isLoggedIn, onLogout, theme, onThemeToggle }: 
           </div>
         </div>
         <div className="footer-bottom">
-          © 2026 Медиа РСО. Все права защищены.
+          © 2026 Медиа РСО. Все права защищены. Сделано в Российских Студенческих Отрядах.
         </div>
       </footer>
 
