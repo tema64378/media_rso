@@ -1,25 +1,65 @@
 .card {
-  border-radius: 1rem;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
+  border-radius: var(--card-radius, 24px);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
 .card-default {
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 1.5rem;
+}
+
+.card-default:hover {
+  border-color: rgba(var(--accent-rgb), 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .card-elevated {
-  background: white;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card-elevated:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
-  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.2);
+  transform: translateY(-6px) scale(1.01);
 }
 
 .card-outlined {
   background: transparent;
-  border: 2px solid #0066FF;
+  border: 2px solid var(--accent);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-outlined:hover {
+  background: rgba(var(--accent-rgb), 0.04);
+  box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.15);
+  transform: translateY(-2px);
+}
+
+/* Card with glow on hover */
+.card-glow {
+  position: relative;
+}
+.card-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from 0deg, transparent, rgba(var(--accent-rgb), 0.3), transparent, rgba(var(--accent-rgb), 0.3), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s;
+  pointer-events: none;
+}
+.card-glow:hover::before {
+  opacity: 1;
+  animation: spin-slow 4s linear infinite;
 }

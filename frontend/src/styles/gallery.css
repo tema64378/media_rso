@@ -1,65 +1,81 @@
 .gallery-container {
-  max-width: 1200px;
+  max-width: 1760px;
   margin: 0 auto;
-  padding: 40px 16px;
+  padding: 3rem 2rem;
 }
 
 .gallery-container h1 {
-  font-size: 36px;
-  margin: 0 0 8px;
+  font-family: 'Actay Wide', 'Stolzl', sans-serif;
+  font-size: 3.5rem;
+  margin: 0 0 0.75rem;
+  color: var(--text);
 }
 
-.subtitle {
-  color: #666;
-  margin-bottom: 40px;
-  font-size: 16px;
+.gallery-subtitle {
+  color: var(--text-muted);
+  margin-bottom: 3rem;
+  font-size: 1.25rem;
+  font-family: 'Stolzl', 'Inter', sans-serif;
 }
 
 .submissions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 2rem;
 }
 
 .submission-card {
-  padding: 16px;
+  padding: 0;
 }
 
 .submission-card h3 {
-  margin: 0 0 8px;
-  font-size: 18px;
+  margin: 0 0 0.75rem;
+  font-size: 1.375rem;
+  color: var(--text);
+  font-family: 'Actay Wide', 'Stolzl', sans-serif;
 }
 
 .submission-card .author {
-  color: #999;
-  font-size: 14px;
-  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin: 0 0 1rem;
 }
 
 .submission-card .description {
-  color: #666;
-  margin-bottom: 16px;
-  line-height: 1.5;
+  color: var(--text-tertiary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  font-size: 1.0625rem;
 }
 
-.actions {
+.submission-actions {
   display: flex;
-  gap: 8px;
+  gap: 1rem;
 }
 
 .action-link {
-  padding: 8px 16px;
-  background: #667eea;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
   color: white;
   text-decoration: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 0.75rem;
+  font-size: 1rem;
   font-weight: 500;
+  font-family: 'Stolzl', 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+
+.action-link:hover {
+  background: var(--accent-hover);
+  opacity: 1;
 }
 
 .empty {
   text-align: center;
-  color: #999;
-  padding: 60px 20px;
-  font-size: 18px;
+  color: var(--text-muted);
+  padding: 5rem 2rem;
+  font-size: 1.375rem;
+  border: 1px dashed var(--border);
+  border-radius: 1.25rem;
+  background: var(--bg-card);
 }

@@ -15,6 +15,16 @@ pub async fn init_db() -> DbPool {
         .await
         .expect("Failed to connect to database");
 
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS _migrations (
+            name TEXT PRIMARY KEY,
+            applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )"
+    )
+        .execute(&pool)
+        .await
+        .ok();
+
     let migrations_path = "./migrations";
     if fs::metadata(migrations_path).is_ok() {
         let mut files = fs::read_dir(migrations_path)
@@ -26,6 +36,21 @@ pub async fn init_db() -> DbPool {
 
         for file in files {
             if file.extension().map_or(false, |ext| ext == "sql") {
+                let name = file.file_name().unwrap().to_str().unwrap().to_string();
+
+                let already_applied = sqlx::query("SELECT 1 FROM _migrations WHERE name = ?")
+                    .bind(&name)
+                    .fetch_optional(&pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .is_some();
+
+                if already_applied {
+                    tracing::info!("Skipping already applied migration: {}", name);
+                    continue;
+                }
+
                 let sql = fs::read_to_string(&file).expect("Failed to read migration");
                 let statements: Vec<&str> = sql.split(';')
                     .map(|s| s.trim())
@@ -38,7 +63,14 @@ pub async fn init_db() -> DbPool {
                         .await
                         .expect(&format!("Failed to execute: {}", stmt));
                 }
-                tracing::info!("Applied migration: {}", file.display());
+
+                sqlx::query("INSERT INTO _migrations (name) VALUES (?)")
+                    .bind(&name)
+                    .execute(&pool)
+                    .await
+                    .ok();
+
+                tracing::info!("Applied migration: {}", name);
             }
         }
     }
@@ -50,10 +82,11 @@ pub async fn init_db() -> DbPool {
 
 async fn seed_default_users(pool: &DbPool) {
     let users = vec![
-        ("admin@example.com", "adminpass", "admin", Some("Admin User")),
-        ("expert@example.com", "expertpass", "expert", Some("Expert User")),
-        ("hq@example.com", "hqpass", "hq", Some("HQ User")),
-        ("participant@example.com", "participant", "participant", Some("Participant User")),
+        ("admin@example.com", "adminpass", "admin", Some("Администратор (тест)")),
+        ("admin@mediarso.ru", "admin123", "admin", Some("Главный администратор")),
+        ("expert@example.com", "expertpass", "expert", Some("Эксперт (тест)")),
+        ("hq@example.com", "hqpass", "hq", Some("Штаб РСО (тест)")),
+        ("participant@example.com", "participant", "participant", Some("Участник (тест)")),
     ];
 
     for (email, pwd, role, name) in users {

@@ -1,61 +1,77 @@
 .expert-scoring-container {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 0 16px;
+  max-width: 1400px;
+  margin: 3rem auto;
+  padding: 0 2rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  gap: 3rem;
 }
 
 .submission-preview {
-  padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 3rem;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
-  border-radius: 12px;
+  border-radius: 1.5rem;
 }
 
 .submission-preview h1 {
-  margin: 0 0 12px;
-  font-size: 28px;
-  font-weight: 600;
+  font-family: 'Actay Wide', 'Stolzl', sans-serif;
+  margin: 0 0 1rem;
+  font-size: 2.25rem;
+  font-weight: 700;
 }
 
 .submission-preview .author {
-  opacity: 0.9;
-  margin-bottom: 16px;
+  opacity: 0.85;
+  margin-bottom: 1.25rem;
+  font-size: 1.125rem;
 }
 
 .submission-preview .description {
   line-height: 1.6;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+  font-size: 1.0625rem;
 }
 
 .submission-link {
   display: inline-block;
   background: white;
-  color: #667eea;
-  padding: 10px 20px;
-  border-radius: 6px;
+  color: var(--accent);
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: 'Stolzl', 'Inter', sans-serif;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.submission-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 1;
 }
 
 .scoring-form {
-  padding: 24px;
-  background: #f8f9ff;
-  border-radius: 12px;
+  padding: 3rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.5rem;
 }
 
 .scoring-form h2 {
   margin-top: 0;
-  margin-bottom: 24px;
-  font-size: 20px;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  font-family: 'Actay Wide', 'Stolzl', sans-serif;
+  color: var(--text);
 }
 
 .criterion-score {
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .criterion-score:last-of-type {
@@ -65,37 +81,53 @@
 .criterion-score label {
   display: block;
   font-weight: 600;
-  margin-bottom: 8px;
-  color: #333;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-size: 1.125rem;
 }
 
 .score-slider {
   width: 100%;
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: 0.75rem;
+  accent-color: var(--accent);
+  background: var(--border);
+  height: 8px;
+  border-radius: 4px;
 }
 
 .score-value {
   display: block;
   text-align: right;
-  color: #667eea;
+  color: var(--accent);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 1rem;
 }
 
 .comment-input {
   width: 100%;
-  margin-top: 8px;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-family: inherit;
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--bg-input-disabled);
+  color: var(--text);
+  font-family: 'Stolzl', 'Inter', sans-serif;
+  font-size: 1rem;
   resize: vertical;
-  min-height: 60px;
+  min-height: 80px;
+  transition: all 0.2s;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 
 @media (max-width: 768px) {
   .expert-scoring-container {
     grid-template-columns: 1fr;
+    gap: 2rem;
   }
 }

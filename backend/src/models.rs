@@ -15,4 +15,6 @@ pub struct Submission {
     pub title: String,
     pub description: Option<String>,
     pub url: Option<String>,
+    pub file_path: Option<String>,
+    pub status: Option<String>,
 }

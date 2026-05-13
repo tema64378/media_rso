@@ -1,0 +1,14 @@
+ALTER TABLE users ADD COLUMN phone TEXT;
+ALTER TABLE users ADD COLUMN birth_date TEXT;
+ALTER TABLE users ADD COLUMN birth_place TEXT;
+ALTER TABLE users ADD COLUMN avatar_url TEXT;
+ALTER TABLE users ADD COLUMN passport_series TEXT;
+ALTER TABLE users ADD COLUMN passport_number TEXT;
+ALTER TABLE users ADD COLUMN passport_issued_by TEXT;
+ALTER TABLE users ADD COLUMN passport_issue_date TEXT;
+ALTER TABLE users ADD COLUMN passport_code TEXT;
+ALTER TABLE users ADD COLUMN registration_address TEXT;
+ALTER TABLE users ADD COLUMN inn TEXT;
+ALTER TABLE users ADD COLUMN snils TEXT;
+ALTER TABLE users ADD COLUMN team_name TEXT;
+ALTER TABLE users ADD COLUMN squad_name TEXT;
