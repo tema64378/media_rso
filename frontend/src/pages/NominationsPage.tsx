@@ -16,6 +16,13 @@ export default function NominationsPage() {
   return (
     <div className="info-page">
       <section className="info-hero">
+        <div className="info-hero-orb info-hero-orb-1" />
+        <div className="info-hero-orb info-hero-orb-2" />
+        <div className="info-hero-orb info-hero-orb-3" />
+        <div className="info-hero-grid" />
+        <div className="info-hero-geo info-hero-geo-1" />
+        <div className="info-hero-geo info-hero-geo-2" />
+        <div className="info-hero-geo info-hero-geo-3" />
         <div className="info-hero-content">
           <h1 className="info-hero-title">Номинации</h1>
           <p className="info-hero-subtitle">

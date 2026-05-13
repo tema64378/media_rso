@@ -3,7 +3,7 @@ import '../styles/info-page.css';
 
 const CONTACTS = [
   { icon: "📧", label: "Электронная почта", value: "media@rso.ru", href: "mailto:media@rso.ru" },
-  { icon: "📱", label: "ВКонтакте", value: "vkontakte.ru/rso_media", href: "https://vk.com/rso_media" },
+  { icon: "📱", label: "ВКонтакте", value: "vk.com/rso_media", href: "https://vk.com/rso_media" },
   { icon: "✈️", label: "Telegram-канал", value: "t.me/media_rso", href: "https://t.me/media_rso" },
   { icon: "🌐", label: "Сайт РСО", value: "rso.ru", href: "https://rso.ru" },
 ];
@@ -17,6 +17,13 @@ export default function Contacts() {
   return (
     <div className="info-page">
       <section className="info-hero">
+        <div className="info-hero-orb info-hero-orb-1" />
+        <div className="info-hero-orb info-hero-orb-2" />
+        <div className="info-hero-orb info-hero-orb-3" />
+        <div className="info-hero-grid" />
+        <div className="info-hero-geo info-hero-geo-1" />
+        <div className="info-hero-geo info-hero-geo-2" />
+        <div className="info-hero-geo info-hero-geo-3" />
         <div className="info-hero-content">
           <h1 className="info-hero-title">Контакты</h1>
           <p className="info-hero-subtitle">

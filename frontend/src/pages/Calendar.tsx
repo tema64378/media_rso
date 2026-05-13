@@ -2,16 +2,23 @@ import ScrollReveal from '../components/ScrollReveal';
 import '../styles/info-page.css';
 
 const STEPS = [
-  { period: "1–30 сентября", title: "Приём заявок", desc: "Открытие регистрации на платформе. Участники заполняют профили, выбирают номинации и загружают конкурсные работы. Работа технической поддержки и модерация заявок." },
-  { period: "1–20 октября", title: "Экспертная оценка", desc: "Работы оцениваются экспертным жюри по утверждённым критериям. Каждая работа проверяется минимум двумя экспертами. Баллы подсчитываются автоматически." },
-  { period: "21–31 октября", title: "Формирование рейтинга", desc: "Автоматический подсчёт итоговых баллов. Формирование рейтинга победителей в каждой номинации. Публикация предварительных результатов." },
-  { period: "15–17 ноября", title: "Финал", desc: "Финал конкурса на Всероссийском слёте РСО в Челябинске. Награждение победителей, церемония закрытия." },
+  { period: "1–30 сентября", title: "Приём заявок", icon: "📝", desc: "Открытие регистрации на платформе. Участники заполняют профили, выбирают номинации и загружают конкурсные работы. Работа технической поддержки и модерация заявок." },
+  { period: "1–20 октября", title: "Экспертная оценка", icon: "⭐", desc: "Работы оцениваются экспертным жюри по утверждённым критериям. Каждая работа проверяется минимум двумя экспертами. Баллы подсчитываются автоматически." },
+  { period: "21–31 октября", title: "Формирование рейтинга", icon: "🏆", desc: "Автоматический подсчёт итоговых баллов. Формирование рейтинга победителей в каждой номинации. Публикация предварительных результатов." },
+  { period: "15–17 ноября", title: "Финал", icon: "🎉", desc: "Финал конкурса на Всероссийском слёте РСО в Челябинске. Награждение победителей, церемония закрытия." },
 ];
 
 export default function Calendar() {
   return (
     <div className="info-page">
       <section className="info-hero">
+        <div className="info-hero-orb info-hero-orb-1" />
+        <div className="info-hero-orb info-hero-orb-2" />
+        <div className="info-hero-orb info-hero-orb-3" />
+        <div className="info-hero-grid" />
+        <div className="info-hero-geo info-hero-geo-1" />
+        <div className="info-hero-geo info-hero-geo-2" />
+        <div className="info-hero-geo info-hero-geo-3" />
         <div className="info-hero-content">
           <h1 className="info-hero-title">Календарь конкурса</h1>
           <p className="info-hero-subtitle">
@@ -26,9 +33,7 @@ export default function Calendar() {
             <ScrollReveal key={i} delay={i * 120} direction={i % 2 === 0 ? "left" : "right"}>
               <div className="info-card">
                 <div className="info-card-title">
-                  <span className="info-card-icon">
-                    {['📝', '⭐', '🏆', '🎉'][i]}
-                  </span>
+                  <span className="info-card-icon">{step.icon}</span>
                   {step.title}
                 </div>
                 <p style={{ fontFamily: "'Stolzl', sans-serif", fontWeight: 600, color: "var(--accent)", marginBottom: "0.75rem" }}>
