@@ -1,0 +1,222 @@
+.info-page {
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  font-family: 'Onest', 'Stolzl', sans-serif;
+}
+
+.info-hero {
+  position: relative;
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 6rem 3rem 4rem;
+  overflow: hidden;
+}
+
+.info-hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 960px;
+}
+
+.info-hero-title {
+  font-family: 'Actay Wide', sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  line-height: 1.1;
+}
+
+.info-hero-subtitle {
+  font-family: 'Onest', sans-serif;
+  font-size: clamp(1.125rem, 1.8vw, 1.375rem);
+  line-height: 1.7;
+  color: var(--text-tertiary);
+  max-width: 700px;
+}
+
+.info-section {
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 4rem 3rem;
+}
+
+.info-content {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.info-card {
+  background: var(--bg-card);
+  border-radius: 40px;
+  padding: 3rem;
+  margin-bottom: 2rem;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s;
+  position: relative;
+  overflow: hidden;
+}
+
+.info-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(var(--accent-rgb), 0.15);
+}
+
+.info-card-title {
+  font-family: 'Actay Wide', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-card-icon {
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+.info-card p {
+  font-family: 'Onest', sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--text-tertiary);
+  margin-bottom: 1rem;
+}
+
+.info-card p:last-child {
+  margin-bottom: 0;
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-list li {
+  font-family: 'Onest', sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.info-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 2rem;
+}
+
+.info-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border-radius: 24px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.info-contact-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.12);
+}
+
+.info-contact-icon {
+  font-size: 1.75rem;
+  color: var(--accent);
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--accent-rgb), 0.1);
+  border-radius: 16px;
+}
+
+.info-contact-text {
+  font-family: 'Onest', sans-serif;
+  font-size: 1.125rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.info-contact-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Stolzl', sans-serif;
+  margin-bottom: 0.25rem;
+}
+
+.info-contact-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.info-contact-link:hover {
+  opacity: 0.8;
+}
+
+.info-section-title {
+  font-family: 'Actay Wide', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  color: var(--text);
+  margin-bottom: 2.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.info-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .info-hero {
+    padding: 3rem 1.5rem 2rem;
+  }
+
+  .info-section {
+    padding: 2rem 1.5rem;
+  }
+
+  .info-card {
+    padding: 2rem 1.5rem;
+    border-radius: 30px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}

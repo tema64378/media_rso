@@ -17,6 +17,13 @@ import VerifyEmail from "./pages/VerifyEmail";
 import Timeline from "./pages/Timeline";
 import Compare from "./pages/Compare";
 import MyScores from "./pages/MyScores";
+import About from "./pages/About";
+import Rules from "./pages/Rules";
+import NominationsPage from "./pages/NominationsPage";
+import Calendar from "./pages/Calendar";
+import Contacts from "./pages/Contacts";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 import "./styles.css";
 import "./styles/animations.css";
@@ -99,6 +106,13 @@ function Layout() {
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/my-scores" element={<MyScores />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/rules" element={<Rules />} />
+            <Route path="/nominations" element={<NominationsPage />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             {(userRole === "expert" || userRole === "admin" || userRole === "hq") && (
               <Route path="/scoring/:id" element={<ExpertScoring />} />
             )}

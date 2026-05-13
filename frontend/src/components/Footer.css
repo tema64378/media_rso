@@ -15,10 +15,22 @@
   gap: 3rem;
 }
 
+.footer-brand-col {
+  max-width: 320px;
+}
+
 .footer-brand {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.footer-desc {
+  font-family: 'Onest', 'Stolzl', 'Inter', sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--text-muted);
 }
 
 .footer-logo {
