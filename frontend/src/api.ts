@@ -12,7 +12,7 @@ async function fetchWithTimeout(input: RequestInfo, init?: RequestInit, timeout?
   }
 }
 
-export async function register(payload: {email: string, password: string, name?: string, role?: string, team_name?: string, squad_name?: string, position?: string}) {
+export async function register(payload: {email: string, password: string, name?: string, role?: string, team_name?: string, squad_name?: string, federal_district?: string, position?: string}) {
   const res = await fetchWithTimeout(`${BASE}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

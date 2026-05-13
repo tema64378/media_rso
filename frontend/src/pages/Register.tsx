@@ -2,13 +2,15 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { register } from "../api";
 import ScrollReveal from '../components/ScrollReveal';
+import { FEDERAL_DISTRICTS, getRegionsByDistrict, DISTRICT_NAMES } from '../data/russian-regions';
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [teamName, setTeamName] = useState("");
-  const [squadName, setSquadName] = useState("");
+  const [federalDistrict, setFederalDistrict] = useState("");
+  const [region, setRegion] = useState("");
   const [position, setPosition] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export default function Register() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await register({ email, password, name, role: "participant", team_name: teamName || undefined, squad_name: squadName || undefined, position: position || undefined });
+    const res = await register({ email, password, name, role: "participant", team_name: teamName || undefined, squad_name: region || undefined, federal_district: federalDistrict || undefined, position: position || undefined });
     setLoading(false);
     if (res.status === "ok") {
       if (selectedNoms.length > 0) {
@@ -187,23 +189,52 @@ export default function Register() {
                   color: "var(--text-tertiary)", textTransform: "uppercase",
                   letterSpacing: "0.05em", fontFamily: "'Stolzl', sans-serif", marginBottom: "0.5rem",
                 }}>
-                  Региональное отделение
+                  Федеральный округ
                 </label>
-                <input
-                  value={squadName}
-                  onChange={e => setSquadName(e.target.value)}
-                  placeholder="Название штаба"
+                <select
+                  value={federalDistrict}
+                  onChange={e => { setFederalDistrict(e.target.value); setRegion(""); }}
                   style={{
                     width: "100%", padding: "1rem 1.25rem",
                     border: "1px solid var(--border)", borderRadius: "24px",
                     background: "var(--bg-input)", color: "var(--text)",
                     fontFamily: "'Onest', sans-serif", fontSize: "1.125rem",
-                    outline: "none", transition: "border-color 0.2s",
+                    outline: "none", cursor: "pointer",
                   }}
-                  onFocus={e => e.target.style.borderColor = "var(--accent)"}
-                  onBlur={e => e.target.style.borderColor = "var(--border)"}
-                />
+                >
+                  <option value="">Выберите округ</option>
+                  {DISTRICT_NAMES.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               </div>
+            </div>
+            <div>
+              <label style={{
+                display: "block", fontSize: "0.875rem", fontWeight: 600,
+                color: "var(--text-tertiary)", textTransform: "uppercase",
+                letterSpacing: "0.05em", fontFamily: "'Stolzl', sans-serif", marginBottom: "0.5rem",
+              }}>
+                Регион
+              </label>
+              <select
+                value={region}
+                onChange={e => setRegion(e.target.value)}
+                disabled={!federalDistrict}
+                style={{
+                  width: "100%", padding: "1rem 1.25rem",
+                  border: "1px solid var(--border)", borderRadius: "24px",
+                  background: "var(--bg-input)", color: "var(--text)",
+                  fontFamily: "'Onest', sans-serif", fontSize: "1.125rem",
+                  outline: "none", cursor: federalDistrict ? "pointer" : "not-allowed",
+                  opacity: federalDistrict ? 1 : 0.5,
+                }}
+              >
+                <option value="">{federalDistrict ? "Выберите регион" : "Сначала выберите округ"}</option>
+                {federalDistrict && getRegionsByDistrict(federalDistrict).map(r => (
+                  <option key={r.name} value={r.name}>{r.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label style={{
