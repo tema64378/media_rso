@@ -2,9 +2,9 @@ import ScrollReveal from '../components/ScrollReveal';
 import '../styles/info-page.css';
 
 const STEPS = [
-  { period: "1–30 сентября", title: "Приём заявок", icon: "📝", desc: "Открытие регистрации на платформе. Участники заполняют профили, выбирают номинации и загружают конкурсные работы. Работа технической поддержки и модерация заявок." },
-  { period: "1–20 октября", title: "Экспертная оценка", icon: "⭐", desc: "Работы оцениваются экспертным жюри по утверждённым критериям. Каждая работа проверяется минимум двумя экспертами. Баллы подсчитываются автоматически." },
-  { period: "21–31 октября", title: "Формирование рейтинга", icon: "🏆", desc: "Автоматический подсчёт итоговых баллов. Формирование рейтинга победителей в каждой номинации. Публикация предварительных результатов." },
+  { period: "1–30 сентября", title: "Приём заявок", icon: "📝", desc: "Открытие регистрации на платформе. Участники заполняют профили, выбирают номинации и загружают конкурсные работы." },
+  { period: "1–20 октября", title: "Экспертная оценка", icon: "⭐", desc: "Работы оцениваются экспертным жюри по утверждённым критериям. Каждая работа проверяется минимум двумя экспертами." },
+  { period: "21–31 октября", title: "Формирование рейтинга", icon: "🏆", desc: "Автоматический подсчёт итоговых баллов. Формирование рейтинга победителей в каждой номинации." },
   { period: "15–17 ноября", title: "Финал", icon: "🎉", desc: "Финал конкурса на Всероссийском слёте РСО в Челябинске. Награждение победителей, церемония закрытия." },
 ];
 
@@ -28,18 +28,20 @@ export default function Calendar() {
       </section>
 
       <section className="info-section">
-        <div className="info-content">
+        <div className="calendar-timeline">
+          <div className="calendar-line" />
           {STEPS.map((step, i) => (
-            <ScrollReveal key={i} delay={i * 120} direction={i % 2 === 0 ? "left" : "right"}>
-              <div className="info-card">
-                <div className="info-card-title">
-                  <span className="info-card-icon">{step.icon}</span>
-                  {step.title}
+            <ScrollReveal key={i} delay={i * 150} direction={i % 2 === 0 ? "left" : "right"}>
+              <div className="calendar-item">
+                <div className="calendar-dot">
+                  {String(i + 1).padStart(2, '0')}
                 </div>
-                <p style={{ fontFamily: "'Stolzl', sans-serif", fontWeight: 600, color: "var(--accent)", marginBottom: "0.75rem" }}>
-                  {step.period}
-                </p>
-                <p>{step.desc}</p>
+                <div className="calendar-card">
+                  <div className="calendar-card-icon">{step.icon}</div>
+                  <div className="calendar-card-title">{step.title}</div>
+                  <div className="calendar-card-period">{step.period}</div>
+                  <p className="calendar-card-desc">{step.desc}</p>
+                </div>
               </div>
             </ScrollReveal>
           ))}
