@@ -27,9 +27,15 @@ export default function Register() {
   }, []);
 
   const toggleNom = (id: number) => {
-    setSelectedNoms(prev =>
-      prev.includes(id) ? prev.filter(n => n !== id) : [...prev, id]
-    );
+    setSelectedNoms(prev => {
+      const isRemoving = prev.includes(id);
+      if (isRemoving) {
+        const mediaTeamNom = nominations.find(n => n.name.toLowerCase().includes("медиакоманда"));
+        if (mediaTeamNom && id === mediaTeamNom.id) setPosition("");
+        return prev.filter(n => n !== id);
+      }
+      return [...prev, id];
+    });
   };
 
   async function onSubmit(e: React.FormEvent) {
@@ -236,30 +242,35 @@ export default function Register() {
                 ))}
               </select>
             </div>
-            <div>
-              <label style={{
-                display: "block", fontSize: "0.875rem", fontWeight: 600,
-                color: "var(--text-tertiary)", textTransform: "uppercase",
-                letterSpacing: "0.05em", fontFamily: "'Stolzl', sans-serif", marginBottom: "0.5rem",
-              }}>
-                Должность
-              </label>
-              <select value={position} onChange={e => setPosition(e.target.value)}
-                style={{
-                  width: "100%", padding: "1rem 1.25rem",
-                  border: "1px solid var(--border)", borderRadius: "24px",
-                  background: "var(--bg-input)", color: "var(--text)",
-                  fontFamily: "'Onest', sans-serif", fontSize: "1.125rem",
-                  outline: "none", cursor: "pointer",
-                }}
-                onFocus={e => e.target.style.borderColor = "var(--accent)"}
-                onBlur={e => e.target.style.borderColor = "var(--border)"}
-              >
-                <option value="">Не указана</option>
-                <option value="фотограф">Фотограф</option>
-                <option value="видеограф">Видеограф</option>
-              </select>
-            </div>
+            {(() => {
+              const mediaTeamNom = nominations.find(n => n.name.toLowerCase().includes("медиакоманда"));
+              return mediaTeamNom && selectedNoms.includes(mediaTeamNom.id) ? (
+                <div>
+                  <label style={{
+                    display: "block", fontSize: "0.875rem", fontWeight: 600,
+                    color: "var(--text-tertiary)", textTransform: "uppercase",
+                    letterSpacing: "0.05em", fontFamily: "'Stolzl', sans-serif", marginBottom: "0.5rem",
+                  }}>
+                    Должность
+                  </label>
+                  <select value={position} onChange={e => setPosition(e.target.value)}
+                    style={{
+                      width: "100%", padding: "1rem 1.25rem",
+                      border: "1px solid var(--border)", borderRadius: "24px",
+                      background: "var(--bg-input)", color: "var(--text)",
+                      fontFamily: "'Onest', sans-serif", fontSize: "1.125rem",
+                      outline: "none", cursor: "pointer",
+                    }}
+                    onFocus={e => e.target.style.borderColor = "var(--accent)"}
+                    onBlur={e => e.target.style.borderColor = "var(--border)"}
+                  >
+                    <option value="">Не указана</option>
+                    <option value="фотограф">Фотограф</option>
+                    <option value="видеограф">Видеограф</option>
+                  </select>
+                </div>
+              ) : null;
+            })()}
 
             {/* Nominations */}
             {nominations.length > 0 && (
